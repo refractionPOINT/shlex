@@ -1,3 +1,3 @@
-module github.com/google/shlex
+module github.com/refractionPOINT/shlex
 
-go 1.13
+go 1.21
