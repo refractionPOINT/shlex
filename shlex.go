@@ -20,22 +20,21 @@ shell-style rules for quoting and commenting.
 
 The basic use case uses the default ASCII lexer to split a string into sub-strings:
 
-  shlex.Split("one \"two three\" four") -> []string{"one", "two three", "four"}
+	shlex.Split("one \"two three\" four") -> []string{"one", "two three", "four"}
 
 To process a stream of strings:
 
-  l := NewLexer(os.Stdin)
-  for ; token, err := l.Next(); err != nil {
-  	// process token
-  }
+	l := NewLexer(os.Stdin)
+	for ; token, err := l.Next(); err != nil {
+		// process token
+	}
 
 To access the raw token stream (which includes tokens for comments):
 
-  t := NewTokenizer(os.Stdin)
-  for ; token, err := t.Next(); err != nil {
-	// process token
-  }
-
+	  t := NewTokenizer(os.Stdin)
+	  for ; token, err := t.Next(); err != nil {
+		// process token
+	  }
 */
 package shlex
 
@@ -269,6 +268,7 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				case escapeRuneClass:
 					{
 						state = escapingState
+						value = append(value, rune('\\'))
 					}
 				default:
 					{
@@ -286,6 +286,11 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 							tokenType: tokenType,
 							value:     string(value)}
 						return token, err
+					}
+				case escapeRuneClass:
+					{
+						state = inWordState
+						value = append(value, rune('\\'))
 					}
 				default:
 					{
@@ -305,9 +310,25 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 							value:     string(value)}
 						return token, err
 					}
+				case escapeRuneClass:
+					{
+						value = append(value, rune('\\'))
+						state = quotingEscapingState
+					}
+				case nonEscapingQuoteRuneClass:
+					{
+						state = quotingEscapingState
+						value = append(value, nextRune)
+					}
+				case escapingQuoteRuneClass:
+					{
+						state = quotingEscapingState
+						value = append(value, nextRune)
+					}
 				default:
 					{
 						state = quotingEscapingState
+						value = append(value, rune('\\'))
 						value = append(value, nextRune)
 					}
 				}
@@ -391,6 +412,7 @@ func (t *Tokenizer) scanStream() (*Token, error) {
 				return nil, fmt.Errorf("Unexpected state: %v", state)
 			}
 		}
+		// prevRuneType = nextRuneType
 	}
 }
 
